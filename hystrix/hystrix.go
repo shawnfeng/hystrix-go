@@ -114,6 +114,11 @@ func GoC(ctx context.Context, name string, run runFuncC, fallback fallbackFuncC)
 	}
 
 	go func() {
+		defer func() {
+			if rcv := recover(); rcv != nil {
+				log.Printf("hystrix-go: recover :%v", rcv)
+			}
+		}()
 		defer func() { cmd.finished <- true }()
 
 		// Circuits get opened when recent executions have shown to have a high error rate.
