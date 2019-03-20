@@ -3,6 +3,7 @@ package hystrix
 import (
 	"context"
 	"fmt"
+	"runtime/debug"
 	"sync"
 	"time"
 )
@@ -119,6 +120,7 @@ func GoC(ctx context.Context, name string, run runFuncC, fallback fallbackFuncC)
 		defer func() {
 			if rcv := recover(); rcv != nil {
 				log.Printf("hystrix-go: recover :%v", rcv)
+				fmt.Printf("panic in processor: %s: %s", rcv, debug.Stack())
 
 				returnOnce.Do(func() {
 					returnTicket()
