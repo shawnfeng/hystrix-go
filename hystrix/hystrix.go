@@ -45,6 +45,7 @@ var (
 	ErrCircuitOpen = CircuitError{Message: "circuit open"}
 	// ErrTimeout occurs when the provided function takes too long to execute.
 	ErrTimeout = CircuitError{Message: "timeout"}
+	ErrPanic   = CircuitError{Message: "panic"}
 )
 
 // Go runs your function while tracking the health of previous calls to it.
@@ -114,12 +115,18 @@ func GoC(ctx context.Context, name string, run runFuncC, fallback fallbackFuncC)
 	}
 
 	go func() {
+		defer func() { cmd.finished <- true }()
 		defer func() {
 			if rcv := recover(); rcv != nil {
 				log.Printf("hystrix-go: recover :%v", rcv)
+
+				returnOnce.Do(func() {
+					returnTicket()
+					cmd.errorWithFallback(ctx, ErrPanic)
+					reportAllEvent()
+				})
 			}
 		}()
-		defer func() { cmd.finished <- true }()
 
 		// Circuits get opened when recent executions have shown to have a high error rate.
 		// Rejecting new executions allows backends to recover, and the circuit will allow
